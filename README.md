@@ -1,14 +1,13 @@
 # PR Review Slack Relay
 
-Microserviço externo para receber reviews consolidadas de PR via webhook e enviar notificações privadas no Slack.
+Microserviço externo para receber reviews consolidadas de PR via webhook e publicar alertas em um canal do Slack.
 
 ## Fluxo
 
 ```text
 GitHub Action no repo principal
   -> POST /github/pr-review-notify
-  -> mapeia authorLogin para Slack user ID
-  -> envia DM via Slack Web API
+  -> publica no canal configurado via Slack Web API
 ```
 
 ## Endpoints
@@ -26,7 +25,7 @@ Campos principais:
 
 - `WEBHOOK_BEARER_TOKEN`
 - `SLACK_BOT_TOKEN`
-- `SLACK_USER_MAP_JSON`
+- `SLACK_CHANNEL_ID`
 
 ## Exemplo de payload recebido
 
@@ -74,7 +73,6 @@ curl http://localhost:8787/health
 
 ## Observações operacionais
 
-- O serviço assume que o mapa usa `Slack user ID`, por exemplo `U0123456789`.
-- Se o autor do PR não estiver no `SLACK_USER_MAP_JSON`, o evento é aceito e marcado como `skipped`.
-- O bot do Slack precisa ter permissão `chat:write`.
+- O serviço publica em um canal único, identificado por `SLACK_CHANNEL_ID`, por exemplo `C0123456789`.
+- O bot do Slack precisa ter permissão `chat:write`. Se ele não estiver no canal público, `chat:write.public` simplifica a postagem.
 - O GitHub deve chamar este serviço com `Authorization: Bearer <WEBHOOK_BEARER_TOKEN>`.
