@@ -16,6 +16,8 @@ GitHub Action no repo principal
 - `GET /health`
 - `POST /github/pr-review-notify`
 
+Na Vercel, os rewrites mantêm exatamente esses caminhos públicos.
+
 ## Variáveis de ambiente
 
 Veja `.env.example`.
@@ -94,6 +96,15 @@ Neste projeto, o serviço envia uma única variável com o texto consolidado da 
 npm install
 npm run dev
 ```
+
+## Deploy na Vercel
+
+O projeto já está preparado para Vercel:
+- funções em `api/`
+- rewrites em `vercel.json`
+- compatível com os mesmos paths do modo local
+
+Depois do deploy, configure as env vars do `.env.example` no painel da Vercel.
 
 ## Healthcheck
 
