@@ -1,6 +1,6 @@
 import { loadConfig } from '../../src/config.mjs';
 import { handleGitHubPrReviewNotify } from '../../src/handle-github-pr-review-notify.mjs';
-import { WhatsAppCloudClient } from '../../src/whatsapp-cloud-client.mjs';
+import { SlackClient } from '../../src/slack-client.mjs';
 
 function unauthorized(res) {
 	return res.status(401).json({
@@ -29,8 +29,8 @@ export default async function handler(req, res) {
 	}
 
 	try {
-		const whatsapp = new WhatsAppCloudClient(config);
-		const result = await handleGitHubPrReviewNotify(req.body, config, whatsapp);
+		const slack = new SlackClient(config);
+		const result = await handleGitHubPrReviewNotify(req.body, config, slack);
 		return res.status(result.status).json(result.body);
 	} catch (error) {
 		const message =

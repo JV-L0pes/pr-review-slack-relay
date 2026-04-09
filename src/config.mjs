@@ -21,65 +21,48 @@ function parsePort(value) {
 	return n;
 }
 
-function parsePhoneMap(raw) {
+function parseUserMap(raw) {
 	const parsed = JSON.parse(raw);
 	if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-		throw new Error('USER_PHONE_MAP_JSON must be a JSON object.');
+		throw new Error('SLACK_USER_MAP_JSON must be a JSON object.');
 	}
 
 	const out = new Map();
-	for (const [login, phone] of Object.entries(parsed)) {
-		if (typeof phone !== 'string') {
+	for (const [login, slackUserId] of Object.entries(parsed)) {
+		if (typeof slackUserId !== 'string') {
 			continue;
 		}
-		const normalizedPhone = phone.replace(/\s+/g, '');
-		if (!normalizedPhone) {
+		const normalized = slackUserId.trim();
+		if (!normalized) {
 			continue;
 		}
-		out.set(login, normalizedPhone);
+		out.set(login, normalized);
 	}
 	return out;
 }
 
-function loadPhoneMap() {
-	const inline = process.env.USER_PHONE_MAP_JSON?.trim();
-	const fromFile = process.env.USER_PHONE_MAP_FILE?.trim();
+function loadUserMap() {
+	const inline = process.env.SLACK_USER_MAP_JSON?.trim();
+	const fromFile = process.env.SLACK_USER_MAP_FILE?.trim();
 
 	if (inline) {
-		return parsePhoneMap(inline);
+		return parseUserMap(inline);
 	}
 
 	if (fromFile) {
 		const raw = readFileSync(fromFile, 'utf8');
-		return parsePhoneMap(raw);
+		return parseUserMap(raw);
 	}
 
 	return new Map();
 }
 
-function normalizeSendMode(value) {
-	return value === 'text' ? 'text' : 'template';
-}
-
 function loadConfig() {
-	const sendMode = normalizeSendMode(optional('WHATSAPP_SEND_MODE', 'template'));
-
 	return {
 		port: parsePort(optional('PORT', '8787')),
 		webhookBearerToken: required('WEBHOOK_BEARER_TOKEN'),
-		whatsappAccessToken: required('WHATSAPP_ACCESS_TOKEN'),
-		whatsappPhoneNumberId: required('WHATSAPP_PHONE_NUMBER_ID'),
-		whatsappGraphApiVersion: optional('WHATSAPP_GRAPH_API_VERSION', 'v23.0'),
-		whatsappSendMode: sendMode,
-		whatsappTemplateName:
-			sendMode === 'template'
-				? required('WHATSAPP_TEMPLATE_NAME')
-				: optional('WHATSAPP_TEMPLATE_NAME', ''),
-		whatsappTemplateLanguageCode: optional(
-			'WHATSAPP_TEMPLATE_LANGUAGE_CODE',
-			'pt_BR',
-		),
-		userPhoneMap: loadPhoneMap(),
+		slackBotToken: required('SLACK_BOT_TOKEN'),
+		slackUserMap: loadUserMap(),
 	};
 }
 

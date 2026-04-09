@@ -2,11 +2,11 @@ import express from 'express';
 
 import { loadConfig } from './config.mjs';
 import { handleGitHubPrReviewNotify } from './handle-github-pr-review-notify.mjs';
-import { WhatsAppCloudClient } from './whatsapp-cloud-client.mjs';
+import { SlackClient } from './slack-client.mjs';
 
 function createApp() {
 	const config = loadConfig();
-	const whatsapp = new WhatsAppCloudClient(config);
+	const slack = new SlackClient(config);
 	const app = express();
 
 	app.use(express.json({ limit: '256kb' }));
@@ -27,9 +27,8 @@ function createApp() {
 	app.get('/health', (_req, res) => {
 		res.json({
 			ok: true,
-			service: 'pr-review-whatsapp-relay',
-			sendMode: config.whatsappSendMode,
-			mappedUsers: config.userPhoneMap.size,
+			service: 'pr-review-slack-relay',
+			mappedUsers: config.slackUserMap.size,
 		});
 	});
 
@@ -39,11 +38,7 @@ function createApp() {
 		}
 
 		try {
-			const result = await handleGitHubPrReviewNotify(
-				req.body,
-				config,
-				whatsapp,
-			);
+			const result = await handleGitHubPrReviewNotify(req.body, config, slack);
 			return res.status(result.status).json(result.body);
 		} catch (error) {
 			const message =

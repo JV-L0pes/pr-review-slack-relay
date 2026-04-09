@@ -5,9 +5,8 @@ export default async function handler(_req, res) {
 
 	return res.status(200).json({
 		ok: true,
-		service: 'pr-review-whatsapp-relay',
-		sendMode: config.whatsappSendMode,
-		mappedUsers: config.userPhoneMap.size,
+		service: 'pr-review-slack-relay',
+		mappedUsers: config.slackUserMap.size,
 		runtime: 'vercel',
 	});
 }

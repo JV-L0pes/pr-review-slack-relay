@@ -1,23 +1,23 @@
 import { parseGitHubReviewNotification } from './github-review-notification.mjs';
 
-async function handleGitHubPrReviewNotify(body, config, whatsapp) {
+async function handleGitHubPrReviewNotify(body, config, slack) {
 	const notification = parseGitHubReviewNotification(body);
-	const phone = config.userPhoneMap.get(notification.authorLogin);
+	const slackUserId = config.slackUserMap.get(notification.authorLogin);
 
-	if (!phone) {
+	if (!slackUserId) {
 		return {
 			status: 202,
 			body: {
 				ok: true,
 				status: 'skipped',
-				reason: 'author_phone_not_mapped',
+				reason: 'author_slack_user_not_mapped',
 				authorLogin: notification.authorLogin,
 			},
 		};
 	}
 
-	const whatsappResponse = await whatsapp.sendReviewNotification(
-		phone,
+	const slackResponse = await slack.sendDirectMessage(
+		slackUserId,
 		notification.messageText,
 	);
 
@@ -27,8 +27,8 @@ async function handleGitHubPrReviewNotify(body, config, whatsapp) {
 			ok: true,
 			status: 'queued',
 			authorLogin: notification.authorLogin,
-			to: phone,
-			whatsapp: whatsappResponse,
+			to: slackUserId,
+			slack: slackResponse,
 		},
 	};
 }
