@@ -28,7 +28,7 @@ function createApp() {
 		res.json({
 			ok: true,
 			service: 'pr-review-slack-relay',
-			mappedUsers: config.slackUserMap.size,
+			channelId: config.slackChannelId,
 		});
 	});
 
