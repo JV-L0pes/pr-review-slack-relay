@@ -72,7 +72,7 @@ function ownerLabel(card, membersById) {
 	return owners.join(", ");
 }
 
-function buildPendingCardLines(trelloLists, membersById) {
+function buildPendingCardGroups(trelloLists, membersById) {
 	const pendingStatuses = [
 		"BACKLOG DA SPRINT",
 		"READY",
@@ -82,16 +82,41 @@ function buildPendingCardLines(trelloLists, membersById) {
 		"CONDITIONAL",
 	];
 
-	return pendingStatuses.flatMap((status) => {
+	const allPendingCards = pendingStatuses.flatMap((status) => {
 		const cards =
 			trelloLists.find((list) => list.name.toUpperCase() === status)?.cards ??
 			[];
 
-		return cards.map((card) => {
-			const link = card.shortUrl ? ` | ${card.shortUrl}` : "";
-			return `- [${status}] \`${card.name}\` | owner: ${ownerLabel(card, membersById)}${link}`;
-		});
+		return cards.map((card) => ({
+			status,
+			card,
+			owner: ownerLabel(card, membersById),
+			hasOwner: (card.idMembers ?? []).length > 0,
+		}));
 	});
+
+	const formatLine = ({ status, card, owner }) => {
+		const link = card.shortUrl ? ` | ${card.shortUrl}` : "";
+		return `- [${status}] \`${card.name}\` | owner: ${owner}${link}`;
+	};
+
+	return {
+		inProgressLines: allPendingCards
+			.filter(({ status }) => ["DOING", "REVIEW"].includes(status))
+			.map(formatLine),
+		withOwnerLines: allPendingCards
+			.filter(
+				({ status, hasOwner }) =>
+					!["DOING", "REVIEW"].includes(status) && hasOwner,
+			)
+			.map(formatLine),
+		withoutOwnerLines: allPendingCards
+			.filter(
+				({ status, hasOwner }) =>
+					!["DOING", "REVIEW"].includes(status) && !hasOwner,
+			)
+			.map(formatLine),
+	};
 }
 
 function buildDocsLinks({ repository, defaultBranch }) {
@@ -176,7 +201,7 @@ function buildBacklogSnapshotPayload({
 		...summarizeCards(blockedCards),
 		...summarizeCards(conditionalCards),
 	]);
-	const assignmentLines = buildPendingCardLines(trelloLists, membersById);
+	const pendingCardGroups = buildPendingCardGroups(trelloLists, membersById);
 
 	const prLines =
 		pullRequests.length > 0
@@ -203,12 +228,12 @@ function buildBacklogSnapshotPayload({
 					: [
 							"- Nenhum card em DOING, REVIEW, BLOCKED ou CONDITIONAL no momento.",
 						],
-			assignmentLines,
+			pendingCardGroups,
 			prLines,
 			docLines: buildDocsLinks({ repository, defaultBranch }),
 			operationalLines: [
 				"- Este snapshot reconcilia board do Trello, PRs abertos e documentação versionada.",
-				"- O bloco de pendências mapeadas lista tudo que ainda não está em DONE com owner quando existir.",
+				"- As pendências agora ficam separadas entre em andamento/review, com owner e sem owner.",
 				"- Divergência entre board, docs e código deve ser tratada como bloqueio de coordenação.",
 				"- Atualização automática pelo scheduler externo do relay.",
 			],

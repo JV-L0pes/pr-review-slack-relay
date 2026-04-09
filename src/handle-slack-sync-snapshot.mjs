@@ -40,10 +40,31 @@ function parseSnapshotPayload(payload) {
 			snapshot.highlightLines,
 			"snapshot.highlightLines",
 		),
-		assignmentLines: normalizeList(
-			snapshot.assignmentLines ?? [],
-			"snapshot.assignmentLines",
-		),
+		pendingCardGroups:
+			snapshot.pendingCardGroups &&
+			typeof snapshot.pendingCardGroups === "object"
+				? {
+						inProgressLines: normalizeList(
+							snapshot.pendingCardGroups.inProgressLines ?? [],
+							"snapshot.pendingCardGroups.inProgressLines",
+						),
+						withOwnerLines: normalizeList(
+							snapshot.pendingCardGroups.withOwnerLines ?? [],
+							"snapshot.pendingCardGroups.withOwnerLines",
+						),
+						withoutOwnerLines: normalizeList(
+							snapshot.pendingCardGroups.withoutOwnerLines ?? [],
+							"snapshot.pendingCardGroups.withoutOwnerLines",
+						),
+					}
+				: {
+						inProgressLines: [],
+						withOwnerLines: [],
+						withoutOwnerLines: normalizeList(
+							snapshot.assignmentLines ?? [],
+							"snapshot.assignmentLines",
+						),
+					},
 		prLines: normalizeList(snapshot.prLines, "snapshot.prLines"),
 		docLines: normalizeList(snapshot.docLines, "snapshot.docLines"),
 		operationalLines: normalizeList(
@@ -134,8 +155,28 @@ function buildSnapshotBlocks(snapshot) {
 		pushLineSections(blocks, "Destaques operacionais", snapshot.highlightLines);
 	}
 
-	if (snapshot.assignmentLines.length > 0) {
-		pushLineSections(blocks, "Pendências mapeadas", snapshot.assignmentLines);
+	if (snapshot.pendingCardGroups.inProgressLines.length > 0) {
+		pushLineSections(
+			blocks,
+			"Em andamento / review",
+			snapshot.pendingCardGroups.inProgressLines,
+		);
+	}
+
+	if (snapshot.pendingCardGroups.withOwnerLines.length > 0) {
+		pushLineSections(
+			blocks,
+			"Pendências com owner",
+			snapshot.pendingCardGroups.withOwnerLines,
+		);
+	}
+
+	if (snapshot.pendingCardGroups.withoutOwnerLines.length > 0) {
+		pushLineSections(
+			blocks,
+			"Pendências sem owner",
+			snapshot.pendingCardGroups.withoutOwnerLines,
+		);
 	}
 
 	if (snapshot.prLines.length > 0) {
