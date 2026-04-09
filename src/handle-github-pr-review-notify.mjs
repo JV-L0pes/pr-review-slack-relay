@@ -1,4 +1,4 @@
-import { parseGitHubReviewNotification } from './github-review-notification.mjs';
+import { parseGitHubReviewNotification } from "./github-review-notification.mjs";
 
 function normalizeSummaryLines(payload) {
 	const items = Array.isArray(payload?.review?.inlineSummary)
@@ -7,83 +7,107 @@ function normalizeSummaryLines(payload) {
 	return items
 		.map((item, index) => {
 			const summary =
-				typeof item?.summary === 'string' ? item.summary.trim() : '';
-			return summary ? `• ${index + 1}. ${summary}` : '';
+				typeof item?.summary === "string" ? item.summary.trim() : "";
+			return summary ? `• ${index + 1}. ${summary}` : "";
 		})
 		.filter(Boolean);
 }
 
 function buildSlackBlocks(payload, notification) {
-	const state = notification.reviewState === 'approved' ? 'APPROVED' : 'CHANGES_REQUESTED';
-	const stateText =
-		notification.reviewState === 'approved'
-			? 'aprovado na revisão atual'
-			: 'correções solicitadas na revisão atual';
+	const isApproved = notification.reviewState === "approved";
+	const isChangesRequested = notification.reviewState === "changes_requested";
+	const isComment = notification.reviewState === "commented";
+	const state = isApproved
+		? "APPROVED"
+		: isChangesRequested
+			? "CHANGES_REQUESTED"
+			: "COMMENT";
+	const stateText = isApproved
+		? "aprovado na revisão atual"
+		: isChangesRequested
+			? "correções solicitadas na revisão atual"
+			: "novo comentário registrado no PR";
 	const repository =
-		typeof payload?.repository?.fullName === 'string'
+		typeof payload?.repository?.fullName === "string"
 			? payload.repository.fullName.trim()
-			: 'unknown';
+			: "unknown";
 	const baseRef =
-		typeof payload?.pullRequest?.baseRefName === 'string'
+		typeof payload?.pullRequest?.baseRefName === "string"
 			? payload.pullRequest.baseRefName.trim()
-			: 'unknown';
+			: "unknown";
 	const headRef =
-		typeof payload?.pullRequest?.headRefName === 'string'
+		typeof payload?.pullRequest?.headRefName === "string"
 			? payload.pullRequest.headRefName.trim()
-			: 'unknown';
-	const reviewer = notification.reviewerLogin || 'unknown';
+			: "unknown";
+	const reviewer = notification.reviewerLogin || "unknown";
 	const observation =
-		typeof payload?.review?.body === 'string' && payload.review.body.trim()
+		typeof payload?.review?.body === "string" && payload.review.body.trim()
 			? payload.review.body.trim()
 			: notification.messageText;
 	const summaryLines = normalizeSummaryLines(payload);
+	const commentLocation =
+		notification.commentKind === "inline" && notification.commentPath
+			? notification.commentLine
+				? `${notification.commentPath}:${notification.commentLine}`
+				: notification.commentPath
+			: "";
+	const typeLine = isComment
+		? notification.commentKind === "inline"
+			? commentLocation
+				? `comentário inline em ${commentLocation}`
+				: "comentário inline no PR"
+			: "comentário geral no PR"
+		: "";
+	const actorLabel = isComment ? "Comentou" : "Revisor";
+	const observationLabel = isComment ? "Comentário" : "Observação do revisor";
 
 	const blocks = [
 		{
-			type: 'header',
+			type: "header",
 			text: {
-				type: 'plain_text',
+				type: "plain_text",
 				text: `PR ${state}`,
 			},
 		},
 		{
-			type: 'section',
+			type: "section",
 			text: {
-				type: 'mrkdwn',
+				type: "mrkdwn",
 				text: [
 					`*Repositório:* ${repository}`,
-					`*PR:* #${notification.prNumber} - ${notification.prTitle || 'sem título'}`,
+					`*PR:* #${notification.prNumber} - ${notification.prTitle || "sem título"}`,
 					`*Autor:* ${notification.authorLogin}`,
-					`*Revisor:* ${reviewer}`,
+					`*${actorLabel}:* ${reviewer}`,
+					...(typeLine ? [`*Tipo:* ${typeLine}`] : []),
 					`*Fluxo:* ${headRef} -> ${baseRef}`,
 					`*Status:* ${stateText}`,
-				].join('\n'),
+				].join("\n"),
 			},
 		},
 		{
-			type: 'section',
+			type: "section",
 			text: {
-				type: 'mrkdwn',
-				text: `*Observação do revisor:*\n${observation}`,
+				type: "mrkdwn",
+				text: `*${observationLabel}:*\n${observation}`,
 			},
 		},
 	];
 
-	if (summaryLines.length > 0) {
+	if (!isComment && summaryLines.length > 0) {
 		blocks.push({
-			type: 'section',
+			type: "section",
 			text: {
-				type: 'mrkdwn',
-				text: `*Pontos principais:*\n${summaryLines.join('\n')}`,
+				type: "mrkdwn",
+				text: `*Pontos principais:*\n${summaryLines.join("\n")}`,
 			},
 		});
 	}
 
 	if (notification.prUrl) {
 		blocks.push({
-			type: 'section',
+			type: "section",
 			text: {
-				type: 'mrkdwn',
+				type: "mrkdwn",
 				text: `*Link:* ${notification.prUrl}`,
 			},
 		});
@@ -105,7 +129,7 @@ async function handleGitHubPrReviewNotify(body, config, slack) {
 		status: 202,
 		body: {
 			ok: true,
-			status: 'queued',
+			status: "queued",
 			authorLogin: notification.authorLogin,
 			to: config.slackPrAlertsChannelId,
 			slack: slackResponse,
