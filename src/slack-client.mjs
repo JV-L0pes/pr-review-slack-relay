@@ -10,7 +10,7 @@ class SlackClient {
 		};
 	}
 
-	async sendChannelMessage(channelId, messageText) {
+	async sendChannelMessage(channelId, messageText, blocks) {
 		const response = await fetch('https://slack.com/api/chat.postMessage', {
 			method: 'POST',
 			headers: this.headers(),
@@ -18,6 +18,9 @@ class SlackClient {
 				channel: channelId,
 				text: messageText,
 				mrkdwn: true,
+				blocks,
+				unfurl_links: false,
+				unfurl_media: false,
 			}),
 		});
 
