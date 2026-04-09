@@ -51,6 +51,49 @@ function summarizeCards(cards, limit = 3) {
 	});
 }
 
+function buildMembersById(members) {
+	return new Map(
+		members
+			.filter((member) => member.fullName !== "AGÊNCIA BLACKCLOUD")
+			.map((member) => [member.id, member]),
+	);
+}
+
+function ownerLabel(card, membersById) {
+	const owners = (card.idMembers ?? [])
+		.map((memberId) => membersById.get(memberId))
+		.filter(Boolean)
+		.map((member) => member.fullName || member.username || "unknown");
+
+	if (owners.length === 0) {
+		return "sem responsável";
+	}
+
+	return owners.join(", ");
+}
+
+function buildPendingCardLines(trelloLists, membersById) {
+	const pendingStatuses = [
+		"BACKLOG DA SPRINT",
+		"READY",
+		"DOING",
+		"REVIEW",
+		"BLOCKED",
+		"CONDITIONAL",
+	];
+
+	return pendingStatuses.flatMap((status) => {
+		const cards =
+			trelloLists.find((list) => list.name.toUpperCase() === status)?.cards ??
+			[];
+
+		return cards.map((card) => {
+			const link = card.shortUrl ? ` | ${card.shortUrl}` : "";
+			return `- [${status}] \`${card.name}\` | owner: ${ownerLabel(card, membersById)}${link}`;
+		});
+	});
+}
+
 function buildDocsLinks({ repository, defaultBranch }) {
 	const base = `https://github.com/${repository}/blob/${defaultBranch}`;
 	return [
@@ -85,10 +128,18 @@ async function loadTrelloBoard(boardId, trelloCreds) {
 
 async function loadTrelloLists(boardId, trelloCreds) {
 	const lists = await trelloGetJson(
-		`/boards/${boardId}/lists?fields=name,closed&cards=open&card_fields=name,shortUrl,due,dueComplete`,
+		`/boards/${boardId}/lists?fields=name,closed&cards=open&card_fields=name,shortUrl,due,dueComplete,idMembers`,
 		trelloCreds,
 	);
 	return Array.isArray(lists) ? lists.filter((list) => !list.closed) : [];
+}
+
+async function loadTrelloMembers(boardId, trelloCreds) {
+	const members = await trelloGetJson(
+		`/boards/${boardId}/members?fields=fullName,username`,
+		trelloCreds,
+	);
+	return Array.isArray(members) ? members : [];
 }
 
 function buildBacklogSnapshotPayload({
@@ -96,8 +147,10 @@ function buildBacklogSnapshotPayload({
 	defaultBranch,
 	trelloBoard,
 	trelloLists,
+	trelloMembers,
 	pullRequests,
 }) {
+	const membersById = buildMembersById(trelloMembers);
 	const counts = countCardsByList(trelloLists);
 	const doingCards =
 		trelloLists.find((list) => list.name.toUpperCase() === "DOING")?.cards ??
@@ -123,6 +176,7 @@ function buildBacklogSnapshotPayload({
 		...summarizeCards(blockedCards),
 		...summarizeCards(conditionalCards),
 	]);
+	const assignmentLines = buildPendingCardLines(trelloLists, membersById);
 
 	const prLines =
 		pullRequests.length > 0
@@ -149,10 +203,12 @@ function buildBacklogSnapshotPayload({
 					: [
 							"- Nenhum card em DOING, REVIEW, BLOCKED ou CONDITIONAL no momento.",
 						],
+			assignmentLines,
 			prLines,
 			docLines: buildDocsLinks({ repository, defaultBranch }),
 			operationalLines: [
 				"- Este snapshot reconcilia board do Trello, PRs abertos e documentação versionada.",
+				"- O bloco de pendências mapeadas lista tudo que ainda não está em DONE com owner quando existir.",
 				"- Divergência entre board, docs e código deve ser tratada como bloqueio de coordenação.",
 				"- Atualização automática pelo scheduler externo do relay.",
 			],
@@ -285,18 +341,21 @@ async function buildBacklogSnapshot(config) {
 		key: config.trelloKey,
 		token: config.trelloToken,
 	};
-	const [repoInfo, pullRequests, trelloBoard, trelloLists] = await Promise.all([
-		loadRepository(config.githubRepository, config.githubToken),
-		loadOpenPullRequests(config.githubRepository, config.githubToken),
-		loadTrelloBoard(config.trelloBoardId, trelloCreds),
-		loadTrelloLists(config.trelloBoardId, trelloCreds),
-	]);
+	const [repoInfo, pullRequests, trelloBoard, trelloLists, trelloMembers] =
+		await Promise.all([
+			loadRepository(config.githubRepository, config.githubToken),
+			loadOpenPullRequests(config.githubRepository, config.githubToken),
+			loadTrelloBoard(config.trelloBoardId, trelloCreds),
+			loadTrelloLists(config.trelloBoardId, trelloCreds),
+			loadTrelloMembers(config.trelloBoardId, trelloCreds),
+		]);
 
 	return buildBacklogSnapshotPayload({
 		repository: config.githubRepository,
 		defaultBranch: repoInfo.default_branch ?? "main",
 		trelloBoard,
 		trelloLists,
+		trelloMembers,
 		pullRequests,
 	});
 }
