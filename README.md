@@ -1,19 +1,24 @@
 # PR Review Slack Relay
 
-Microserviço externo para receber reviews consolidadas de PR via webhook e publicar alertas em um canal do Slack.
+Microserviço externo para receber eventos consolidados do GitHub/Trello via webhook e publicar alertas ou snapshots em canais do Slack.
 
 ## Fluxo
 
 ```text
 GitHub Action no repo principal
   -> POST /github/pr-review-notify
-  -> publica no canal configurado via Slack Web API
+  -> publica alerta no canal de PR via Slack Web API
+
+Workflow de sync no repo principal
+  -> POST /slack/sync-snapshot
+  -> atualiza snapshot operacional no canal de backlog
 ```
 
 ## Endpoints
 
 - `GET /health`
 - `POST /github/pr-review-notify`
+- `POST /slack/sync-snapshot`
 
 Na Vercel, os rewrites mantêm exatamente esses caminhos públicos.
 
@@ -25,7 +30,8 @@ Campos principais:
 
 - `WEBHOOK_BEARER_TOKEN`
 - `SLACK_BOT_TOKEN`
-- `SLACK_CHANNEL_ID`
+- `SLACK_PR_ALERTS_CHANNEL_ID`
+- `SLACK_BACKLOG_CHANNEL_ID`
 
 ## Exemplo de payload recebido
 
@@ -73,6 +79,8 @@ curl http://localhost:8787/health
 
 ## Observações operacionais
 
-- O serviço publica em um canal único, identificado por `SLACK_CHANNEL_ID`, por exemplo `C0123456789`.
+- O serviço usa dois canais:
+  - `SLACK_PR_ALERTS_CHANNEL_ID` para reviews de PR
+  - `SLACK_BACKLOG_CHANNEL_ID` para snapshot de backlog/sprint
 - O bot do Slack precisa ter permissão `chat:write`. Se ele não estiver no canal público, `chat:write.public` simplifica a postagem.
 - O GitHub deve chamar este serviço com `Authorization: Bearer <WEBHOOK_BEARER_TOKEN>`.

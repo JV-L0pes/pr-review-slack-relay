@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Recebe reviews de PR via webhook do GitHub e envia notificações privadas no Slack.",
+  "description": "Recebe eventos do GitHub e Trello via webhook e publica alertas operacionais no Slack.",
   "engines": {
     "node": ">=22.0.0",
     "npm": ">=10.0.0"
@@ -12,7 +12,7 @@
     "dev": "node --watch src/server.mjs",
     "start": "node src/server.mjs",
     "test": "node --test",
-    "check": "node --check src/server.mjs && node --check src/app.mjs && node --check src/config.mjs && node --check src/github-review-notification.mjs && node --check src/handle-github-pr-review-notify.mjs && node --check src/slack-client.mjs && node --check api/health.mjs && node --check api/github/pr-review-notify.mjs"
+    "check": "node --check src/server.mjs && node --check src/app.mjs && node --check src/config.mjs && node --check src/github-review-notification.mjs && node --check src/handle-github-pr-review-notify.mjs && node --check src/handle-slack-sync-snapshot.mjs && node --check src/slack-client.mjs && node --check api/health.mjs && node --check api/github/pr-review-notify.mjs && node --check api/slack/sync-snapshot.mjs"
   },
   "dependencies": {
     "express": "^5.1.0"

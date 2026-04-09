@@ -20,11 +20,30 @@ function parsePort(value) {
 }
 
 function loadConfig() {
+	const slackPrAlertsChannelId =
+		process.env.SLACK_PR_ALERTS_CHANNEL_ID?.trim() ||
+		process.env.SLACK_CHANNEL_ID?.trim();
+	const slackBacklogChannelId =
+		process.env.SLACK_BACKLOG_CHANNEL_ID?.trim() ||
+		process.env.SLACK_SYNC_CHANNEL_ID?.trim();
+
+	if (!slackPrAlertsChannelId) {
+		throw new Error(
+			'Missing required environment variable: SLACK_PR_ALERTS_CHANNEL_ID (or legacy SLACK_CHANNEL_ID)',
+		);
+	}
+	if (!slackBacklogChannelId) {
+		throw new Error(
+			'Missing required environment variable: SLACK_BACKLOG_CHANNEL_ID (or legacy SLACK_SYNC_CHANNEL_ID)',
+		);
+	}
+
 	return {
 		port: parsePort(optional('PORT', '8787')),
 		webhookBearerToken: required('WEBHOOK_BEARER_TOKEN'),
 		slackBotToken: required('SLACK_BOT_TOKEN'),
-		slackChannelId: required('SLACK_CHANNEL_ID'),
+		slackPrAlertsChannelId,
+		slackBacklogChannelId,
 	};
 }
 

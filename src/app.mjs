@@ -2,6 +2,7 @@ import express from 'express';
 
 import { loadConfig } from './config.mjs';
 import { handleGitHubPrReviewNotify } from './handle-github-pr-review-notify.mjs';
+import { handleSlackSyncSnapshot } from './handle-slack-sync-snapshot.mjs';
 import { SlackClient } from './slack-client.mjs';
 
 function createApp() {
@@ -28,7 +29,8 @@ function createApp() {
 		res.json({
 			ok: true,
 			service: 'pr-review-slack-relay',
-			channelId: config.slackChannelId,
+			prAlertsChannelId: config.slackPrAlertsChannelId,
+			backlogChannelId: config.slackBacklogChannelId,
 		});
 	});
 
@@ -39,6 +41,24 @@ function createApp() {
 
 		try {
 			const result = await handleGitHubPrReviewNotify(req.body, config, slack);
+			return res.status(result.status).json(result.body);
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : 'unknown_internal_error';
+			return res.status(400).json({
+				ok: false,
+				error: message,
+			});
+		}
+	});
+
+	app.post('/slack/sync-snapshot', async (req, res) => {
+		if (!webhookAuthorized(req)) {
+			return unauthorized(res);
+		}
+
+		try {
+			const result = await handleSlackSyncSnapshot(req.body, config, slack);
 			return res.status(result.status).json(result.body);
 		} catch (error) {
 			const message =

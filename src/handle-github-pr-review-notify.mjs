@@ -96,7 +96,7 @@ async function handleGitHubPrReviewNotify(body, config, slack) {
 	const notification = parseGitHubReviewNotification(body);
 	const blocks = buildSlackBlocks(body, notification);
 	const slackResponse = await slack.sendChannelMessage(
-		config.slackChannelId,
+		config.slackPrAlertsChannelId,
 		notification.messageText,
 		blocks,
 	);
@@ -107,7 +107,7 @@ async function handleGitHubPrReviewNotify(body, config, slack) {
 			ok: true,
 			status: 'queued',
 			authorLogin: notification.authorLogin,
-			to: config.slackChannelId,
+			to: config.slackPrAlertsChannelId,
 			slack: slackResponse,
 		},
 	};

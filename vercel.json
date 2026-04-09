@@ -7,6 +7,10 @@
     {
       "source": "/github/pr-review-notify",
       "destination": "/api/github/pr-review-notify"
+    },
+    {
+      "source": "/slack/sync-snapshot",
+      "destination": "/api/slack/sync-snapshot"
     }
   ]
 }

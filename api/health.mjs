@@ -6,7 +6,8 @@ export default async function handler(_req, res) {
 	return res.status(200).json({
 		ok: true,
 		service: 'pr-review-slack-relay',
-		channelId: config.slackChannelId,
+		prAlertsChannelId: config.slackPrAlertsChannelId,
+		backlogChannelId: config.slackBacklogChannelId,
 		runtime: 'vercel',
 	});
 }
