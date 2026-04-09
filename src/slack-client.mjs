@@ -17,7 +17,7 @@ class SlackClient {
 			body: JSON.stringify({
 				channel: channelId,
 				text: messageText,
-				mrkdwn: false,
+				mrkdwn: true,
 			}),
 		});
 
