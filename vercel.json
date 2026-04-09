@@ -1,16 +1,24 @@
 {
-  "rewrites": [
-    {
-      "source": "/health",
-      "destination": "/api/health"
-    },
-    {
-      "source": "/github/pr-review-notify",
-      "destination": "/api/github/pr-review-notify"
-    },
-    {
-      "source": "/slack/sync-snapshot",
-      "destination": "/api/slack/sync-snapshot"
-    }
-  ]
+	"rewrites": [
+		{
+			"source": "/health",
+			"destination": "/api/health"
+		},
+		{
+			"source": "/github/pr-review-notify",
+			"destination": "/api/github/pr-review-notify"
+		},
+		{
+			"source": "/slack/sync-snapshot",
+			"destination": "/api/slack/sync-snapshot"
+		},
+		{
+			"source": "/cron/backlog-sync",
+			"destination": "/api/cron/backlog-sync"
+		},
+		{
+			"source": "/cron/pr-queue-sync",
+			"destination": "/api/cron/pr-queue-sync"
+		}
+	]
 }

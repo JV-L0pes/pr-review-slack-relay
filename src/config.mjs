@@ -29,21 +29,30 @@ function loadConfig() {
 
 	if (!slackPrAlertsChannelId) {
 		throw new Error(
-			'Missing required environment variable: SLACK_PR_ALERTS_CHANNEL_ID (or legacy SLACK_CHANNEL_ID)',
+			"Missing required environment variable: SLACK_PR_ALERTS_CHANNEL_ID (or legacy SLACK_CHANNEL_ID)",
 		);
 	}
 	if (!slackBacklogChannelId) {
 		throw new Error(
-			'Missing required environment variable: SLACK_BACKLOG_CHANNEL_ID (or legacy SLACK_SYNC_CHANNEL_ID)',
+			"Missing required environment variable: SLACK_BACKLOG_CHANNEL_ID (or legacy SLACK_SYNC_CHANNEL_ID)",
 		);
 	}
 
 	return {
-		port: parsePort(optional('PORT', '8787')),
-		webhookBearerToken: required('WEBHOOK_BEARER_TOKEN'),
-		slackBotToken: required('SLACK_BOT_TOKEN'),
+		port: parsePort(optional("PORT", "8787")),
+		webhookBearerToken: required("WEBHOOK_BEARER_TOKEN"),
+		cronSecret: optional("CRON_SECRET", required("WEBHOOK_BEARER_TOKEN")),
+		slackBotToken: required("SLACK_BOT_TOKEN"),
 		slackPrAlertsChannelId,
 		slackBacklogChannelId,
+		githubRepository: optional(
+			"GITHUB_REPOSITORY",
+			"ErrorSquad-ABP/ABP3-Sistema-Gestao-Leads",
+		),
+		githubToken: optional("GITHUB_TOKEN", ""),
+		trelloKey: optional("TRELLO_KEY", ""),
+		trelloToken: optional("TRELLO_TOKEN", ""),
+		trelloBoardId: optional("TRELLO_BOARD_ID", ""),
 	};
 }
 
