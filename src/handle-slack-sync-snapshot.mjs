@@ -28,6 +28,10 @@ function parseSnapshotPayload(payload) {
 
 	return {
 		snapshotKey: requiredString(snapshot.snapshotKey, 'snapshot.snapshotKey'),
+		channelTarget:
+			typeof snapshot.channelTarget === 'string' && snapshot.channelTarget.trim()
+				? snapshot.channelTarget.trim()
+				: 'backlog',
 		title: requiredString(snapshot.title, 'snapshot.title'),
 		statusLine: requiredString(snapshot.statusLine, 'snapshot.statusLine'),
 		trelloLines: normalizeList(snapshot.trelloLines, 'snapshot.trelloLines'),
@@ -46,6 +50,19 @@ function parseSnapshotPayload(payload) {
 				? snapshot.generatedAt.trim()
 				: null,
 	};
+}
+
+function resolveSnapshotChannelId(snapshot, config) {
+	switch (snapshot.channelTarget) {
+		case 'backlog':
+			return config.slackBacklogChannelId;
+		case 'pr_alerts':
+			return config.slackPrAlertsChannelId;
+		default:
+			throw new Error(
+				`snapshot.channelTarget must be "backlog" or "pr_alerts"; received "${snapshot.channelTarget}".`,
+			);
+	}
 }
 
 function buildSnapshotText(snapshot) {
@@ -133,20 +150,21 @@ function findExistingSnapshot(messages, snapshotKey) {
 
 async function handleSlackSyncSnapshot(body, config, slack) {
 	const snapshot = parseSnapshotPayload(body);
+	const channelId = resolveSnapshotChannelId(snapshot, config);
 	const text = buildSnapshotText(snapshot);
 	const blocks = buildSnapshotBlocks(snapshot);
-	const messages = await slack.getChannelHistory(config.slackBacklogChannelId, 50);
+	const messages = await slack.getChannelHistory(channelId, 50);
 	const existing = findExistingSnapshot(messages, snapshot.snapshotKey);
 
 	const slackResponse = existing
 		? await slack.updateMessage(
-				config.slackBacklogChannelId,
+				channelId,
 				existing.ts,
 				text,
 				blocks,
 			)
 		: await slack.sendChannelMessage(
-				config.slackBacklogChannelId,
+				channelId,
 				text,
 				blocks,
 			);
@@ -157,7 +175,7 @@ async function handleSlackSyncSnapshot(body, config, slack) {
 			ok: true,
 			status: existing ? 'updated' : 'created',
 			snapshotKey: snapshot.snapshotKey,
-			to: config.slackBacklogChannelId,
+			to: channelId,
 			slack: slackResponse,
 		},
 	};

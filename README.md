@@ -11,7 +11,7 @@ GitHub Action no repo principal
 
 Workflow de sync no repo principal
   -> POST /slack/sync-snapshot
-  -> atualiza snapshot operacional no canal de backlog
+  -> atualiza snapshot operacional no canal de backlog ou de PR
 ```
 
 ## Endpoints
@@ -82,5 +82,8 @@ curl http://localhost:8787/health
 - O serviço usa dois canais:
   - `SLACK_PR_ALERTS_CHANNEL_ID` para reviews de PR
   - `SLACK_BACKLOG_CHANNEL_ID` para snapshot de backlog/sprint
+- O endpoint `/slack/sync-snapshot` aceita `snapshot.channelTarget`:
+  - `backlog`
+  - `pr_alerts`
 - O bot do Slack precisa ter permissão `chat:write`. Se ele não estiver no canal público, `chat:write.public` simplifica a postagem.
 - O GitHub deve chamar este serviço com `Authorization: Bearer <WEBHOOK_BEARER_TOKEN>`.
