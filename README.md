@@ -35,6 +35,7 @@ Campos principais:
 - `SLACK_BOT_TOKEN`
 - `SLACK_PR_ALERTS_CHANNEL_ID`
 - `SLACK_BACKLOG_CHANNEL_ID`
+- `SLACK_DEPLOY_CHANNEL_ID` (canal dedicado para status de deploy)
 - `VERCEL_API_TOKEN` (para monitorar deploys)
 - `VERCEL_PROJECT_ID` (para monitorar deploys)
 
@@ -87,9 +88,11 @@ curl http://localhost:8787/health
 - O serviço usa dois canais:
   - `SLACK_PR_ALERTS_CHANNEL_ID` para reviews de PR
   - `SLACK_BACKLOG_CHANNEL_ID` para snapshot de backlog/sprint
-- O endpoint `GET /cron/deploy-status-sync` consulta a API da Vercel e publica um snapshot de deploy no canal definido por `DEPLOY_SNAPSHOT_CHANNEL_TARGET` (`pr_alerts` por padrão).
+- Opcionalmente usa `SLACK_DEPLOY_CHANNEL_ID` para o snapshot de deploy (fallback para `SLACK_PR_ALERTS_CHANNEL_ID` se ausente).
+- O endpoint `GET /cron/deploy-status-sync` consulta a API da Vercel e publica um snapshot de deploy no canal definido por `DEPLOY_SNAPSHOT_CHANNEL_TARGET` (`deploy` por padrão).
 - O endpoint `/slack/sync-snapshot` aceita `snapshot.channelTarget`:
   - `backlog`
   - `pr_alerts`
+  - `deploy`
 - O bot do Slack precisa ter permissão `chat:write`. Se ele não estiver no canal público, `chat:write.public` simplifica a postagem.
 - O GitHub deve chamar este serviço com `Authorization: Bearer <WEBHOOK_BEARER_TOKEN>`.

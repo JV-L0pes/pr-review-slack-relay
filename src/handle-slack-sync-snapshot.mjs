@@ -66,6 +66,10 @@ function parseSnapshotPayload(payload) {
 						),
 					},
 		prLines: normalizeList(snapshot.prLines, "snapshot.prLines"),
+		deployLines: normalizeList(
+			snapshot.deployLines ?? [],
+			"snapshot.deployLines",
+		),
 		docLines: normalizeList(snapshot.docLines, "snapshot.docLines"),
 		operationalLines: normalizeList(
 			snapshot.operationalLines,
@@ -84,9 +88,11 @@ function resolveSnapshotChannelId(snapshot, config) {
 			return config.slackBacklogChannelId;
 		case "pr_alerts":
 			return config.slackPrAlertsChannelId;
+		case "deploy":
+			return config.slackDeployChannelId;
 		default:
 			throw new Error(
-				`snapshot.channelTarget must be "backlog" or "pr_alerts"; received "${snapshot.channelTarget}".`,
+				`snapshot.channelTarget must be "backlog", "pr_alerts" or "deploy"; received "${snapshot.channelTarget}".`,
 			);
 	}
 }
@@ -181,6 +187,10 @@ function buildSnapshotBlocks(snapshot) {
 
 	if (snapshot.prLines.length > 0) {
 		pushLineSections(blocks, "PRs abertos", snapshot.prLines);
+	}
+
+	if (snapshot.deployLines.length > 0) {
+		pushLineSections(blocks, "Deploys recentes", snapshot.deployLines);
 	}
 
 	if (snapshot.docLines.length > 0) {

@@ -34,6 +34,8 @@ function loadConfig() {
 	const slackBacklogChannelId =
 		process.env.SLACK_BACKLOG_CHANNEL_ID?.trim() ||
 		process.env.SLACK_SYNC_CHANNEL_ID?.trim();
+	const slackDeployChannelId =
+		process.env.SLACK_DEPLOY_CHANNEL_ID?.trim() || slackPrAlertsChannelId;
 
 	if (!slackPrAlertsChannelId) {
 		throw new Error(
@@ -53,6 +55,7 @@ function loadConfig() {
 		slackBotToken: required("SLACK_BOT_TOKEN"),
 		slackPrAlertsChannelId,
 		slackBacklogChannelId,
+		slackDeployChannelId,
 		githubRepository: optional(
 			"GITHUB_REPOSITORY",
 			"ErrorSquad-ABP/ABP3-Sistema-Gestao-Leads",
@@ -70,7 +73,7 @@ function loadConfig() {
 		),
 		deploySnapshotChannelTarget: optional(
 			"DEPLOY_SNAPSHOT_CHANNEL_TARGET",
-			"pr_alerts",
+			"deploy",
 		),
 	};
 }

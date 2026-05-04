@@ -386,6 +386,9 @@ function buildPrQueueSnapshotPayload({ repository, defaultBranch, items }) {
 }
 
 function sanitizeDeployChannelTarget(value) {
+	if (value === "deploy") {
+		return "deploy";
+	}
 	return value === "backlog" ? "backlog" : "pr_alerts";
 }
 
@@ -450,6 +453,11 @@ function buildDeployStatusSnapshotPayload({
 	const latestPreview = deployments.find(
 		(deployment) => deployment.target !== "production",
 	);
+	const currentState = latestProduction
+		? formatDeployState(latestProduction.state)
+		: "SEM_DEPLOY_PROD";
+	const currentHealth =
+		currentState === "READY" ? "SAUDAVEL" : "ATENCAO";
 
 	const highlightLines = [
 		latestProduction
@@ -485,10 +493,10 @@ function buildDeployStatusSnapshotPayload({
 		snapshot: {
 			snapshotKey: "deploy_status",
 			channelTarget: sanitizeDeployChannelTarget(channelTarget),
-			title: "Vercel Deploy - Snapshot Operacional",
-			statusLine: `*Projeto:* ${projectId}\n*Deploys monitorados:* ${deployments.length}\n*Estados:* ${
-				stateSummary || "sem dados"
-			}`,
+			title: "Deploy Status - Vercel",
+			statusLine: `*Projeto:* ${projectId}\n*Status atual (produção):* ${currentState}\n*Saude operacional:* ${currentHealth}\n*Deploys monitorados:* ${
+				deployments.length
+			}\n*Estados:* ${stateSummary || "sem dados"}`,
 			trelloLines: [],
 			highlightLines,
 			pendingCardGroups: {
@@ -496,7 +504,8 @@ function buildDeployStatusSnapshotPayload({
 				withOwnerLines: [],
 				withoutOwnerLines: [],
 			},
-			prLines: deployLines,
+			prLines: [],
+			deployLines,
 			docLines: [
 				"- Dashboard Vercel: https://vercel.com/dashboard",
 				"- Deployments API: https://vercel.com/docs/rest-api/reference/endpoints/deployments/list-deployments",

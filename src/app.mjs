@@ -42,6 +42,7 @@ function createApp() {
 			service: "pr-review-slack-relay",
 			prAlertsChannelId: config.slackPrAlertsChannelId,
 			backlogChannelId: config.slackBacklogChannelId,
+			deployChannelId: config.slackDeployChannelId,
 		});
 	});
 
