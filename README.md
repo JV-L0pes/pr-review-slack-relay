@@ -19,6 +19,9 @@ Workflow de sync no repo principal
 - `GET /health`
 - `POST /github/pr-review-notify`
 - `POST /slack/sync-snapshot`
+- `GET /cron/backlog-sync`
+- `GET /cron/pr-queue-sync`
+- `GET /cron/deploy-status-sync`
 
 Na Vercel, os rewrites mantêm exatamente esses caminhos públicos.
 
@@ -32,6 +35,8 @@ Campos principais:
 - `SLACK_BOT_TOKEN`
 - `SLACK_PR_ALERTS_CHANNEL_ID`
 - `SLACK_BACKLOG_CHANNEL_ID`
+- `VERCEL_API_TOKEN` (para monitorar deploys)
+- `VERCEL_PROJECT_ID` (para monitorar deploys)
 
 ## Exemplo de payload recebido
 
@@ -82,6 +87,7 @@ curl http://localhost:8787/health
 - O serviço usa dois canais:
   - `SLACK_PR_ALERTS_CHANNEL_ID` para reviews de PR
   - `SLACK_BACKLOG_CHANNEL_ID` para snapshot de backlog/sprint
+- O endpoint `GET /cron/deploy-status-sync` consulta a API da Vercel e publica um snapshot de deploy no canal definido por `DEPLOY_SNAPSHOT_CHANNEL_TARGET` (`pr_alerts` por padrão).
 - O endpoint `/slack/sync-snapshot` aceita `snapshot.channelTarget`:
   - `backlog`
   - `pr_alerts`

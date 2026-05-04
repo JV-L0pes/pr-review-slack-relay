@@ -19,6 +19,14 @@ function parsePort(value) {
 	return n;
 }
 
+function parsePositiveInt(value, fallback) {
+	const n = Number.parseInt(value, 10);
+	if (!Number.isFinite(n) || n <= 0) {
+		return fallback;
+	}
+	return n;
+}
+
 function loadConfig() {
 	const slackPrAlertsChannelId =
 		process.env.SLACK_PR_ALERTS_CHANNEL_ID?.trim() ||
@@ -53,6 +61,17 @@ function loadConfig() {
 		trelloKey: optional("TRELLO_KEY", ""),
 		trelloToken: optional("TRELLO_TOKEN", ""),
 		trelloBoardId: optional("TRELLO_BOARD_ID", ""),
+		vercelApiToken: optional("VERCEL_API_TOKEN", ""),
+		vercelProjectId: optional("VERCEL_PROJECT_ID", ""),
+		vercelTeamId: optional("VERCEL_TEAM_ID", ""),
+		vercelDeployListLimit: parsePositiveInt(
+			optional("VERCEL_DEPLOY_LIST_LIMIT", "8"),
+			8,
+		),
+		deploySnapshotChannelTarget: optional(
+			"DEPLOY_SNAPSHOT_CHANNEL_TARGET",
+			"pr_alerts",
+		),
 	};
 }
 

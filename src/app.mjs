@@ -3,6 +3,7 @@ import express from "express";
 import { loadConfig } from "./config.mjs";
 import {
 	handleBacklogCronSync,
+	handleDeployStatusCronSync,
 	handlePrQueueCronSync,
 } from "./handle-cron-sync.mjs";
 import { handleGitHubPrReviewNotify } from "./handle-github-pr-review-notify.mjs";
@@ -105,6 +106,24 @@ function createApp() {
 
 		try {
 			const result = await handlePrQueueCronSync(config, slack);
+			return res.status(result.status).json(result.body);
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : "unknown_internal_error";
+			return res.status(400).json({
+				ok: false,
+				error: message,
+			});
+		}
+	});
+
+	app.get("/cron/deploy-status-sync", async (req, res) => {
+		if (!cronAuthorized(req)) {
+			return unauthorized(res);
+		}
+
+		try {
+			const result = await handleDeployStatusCronSync(config, slack);
 			return res.status(result.status).json(result.body);
 		} catch (error) {
 			const message =

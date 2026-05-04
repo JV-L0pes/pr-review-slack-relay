@@ -19,6 +19,10 @@
 		{
 			"source": "/cron/pr-queue-sync",
 			"destination": "/api/cron/pr-queue-sync"
+		},
+		{
+			"source": "/cron/deploy-status-sync",
+			"destination": "/api/cron/deploy-status-sync"
 		}
 	]
 }

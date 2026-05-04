@@ -1,4 +1,8 @@
-import { buildBacklogSnapshot, buildPrQueueSnapshot } from "./cron-sync.mjs";
+import {
+	buildBacklogSnapshot,
+	buildDeployStatusSnapshot,
+	buildPrQueueSnapshot,
+} from "./cron-sync.mjs";
 import { handleSlackSyncSnapshot } from "./handle-slack-sync-snapshot.mjs";
 
 function ensureBacklogConfig(config) {
@@ -36,4 +40,21 @@ async function handlePrQueueCronSync(config, slack) {
 	};
 }
 
-export { handleBacklogCronSync, handlePrQueueCronSync };
+async function handleDeployStatusCronSync(config, slack) {
+	const payload = await buildDeployStatusSnapshot(config);
+	const result = await handleSlackSyncSnapshot(payload, config, slack);
+
+	return {
+		status: result.status,
+		body: {
+			...result.body,
+			cron: "deploy_status",
+		},
+	};
+}
+
+export {
+	handleBacklogCronSync,
+	handleDeployStatusCronSync,
+	handlePrQueueCronSync,
+};

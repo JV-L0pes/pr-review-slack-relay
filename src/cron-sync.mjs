@@ -37,6 +37,30 @@ async function trelloGetJson(path, { key, token }) {
 	return response.json();
 }
 
+async function vercelGetJson(path, { token, teamId }) {
+	const url = new URL(`https://api.vercel.com${path}`);
+	if (teamId) {
+		url.searchParams.set("teamId", teamId);
+	}
+
+	const response = await fetch(url, {
+		headers: {
+			Authorization: `Bearer ${token}`,
+			"Content-Type": "application/json",
+		},
+	});
+	if (!response.ok) {
+		const body = await response.text();
+		throw new Error(`Vercel API ${response.status} for ${url}: ${body}`);
+	}
+
+	return response.json();
+}
+
+function asArray(value) {
+	return Array.isArray(value) ? value : [];
+}
+
 function countCardsByList(lists) {
 	return lists.map((list) => ({
 		name: list.name,
@@ -361,6 +385,133 @@ function buildPrQueueSnapshotPayload({ repository, defaultBranch, items }) {
 	};
 }
 
+function sanitizeDeployChannelTarget(value) {
+	return value === "backlog" ? "backlog" : "pr_alerts";
+}
+
+function formatDeployState(state) {
+	switch (state) {
+		case "READY":
+			return "READY";
+		case "ERROR":
+			return "ERROR";
+		case "CANCELED":
+			return "CANCELED";
+		case "BUILDING":
+			return "BUILDING";
+		case "QUEUED":
+			return "QUEUED";
+		default:
+			return state || "UNKNOWN";
+	}
+}
+
+function buildDeployStateCounts(deployments) {
+	return deployments.reduce((acc, deployment) => {
+		const state = formatDeployState(deployment.state);
+		acc[state] = (acc[state] ?? 0) + 1;
+		return acc;
+	}, {});
+}
+
+function formatRelativeMinutes(createdAt) {
+	const createdTime = new Date(createdAt).getTime();
+	if (!Number.isFinite(createdTime)) {
+		return "idade desconhecida";
+	}
+	const minutes = Math.max(0, Math.floor((Date.now() - createdTime) / 60000));
+	if (minutes < 60) {
+		return `${minutes}min atrás`;
+	}
+	return `${Math.floor(minutes / 60)}h atrás`;
+}
+
+function deploymentLink(deployment) {
+	if (deployment.url) {
+		return `https://${deployment.url}`;
+	}
+	return "sem url";
+}
+
+function buildDeployStatusSnapshotPayload({
+	projectId,
+	deployments,
+	channelTarget,
+}) {
+	const stateCounts = buildDeployStateCounts(deployments);
+	const stateSummary = Object.entries(stateCounts)
+		.sort(([left], [right]) => left.localeCompare(right))
+		.map(([state, count]) => `${state}: ${count}`)
+		.join(", ");
+
+	const latestProduction = deployments.find(
+		(deployment) => deployment.target === "production",
+	);
+	const latestPreview = deployments.find(
+		(deployment) => deployment.target !== "production",
+	);
+
+	const highlightLines = [
+		latestProduction
+			? `- Prod: \`${formatDeployState(latestProduction.state)}\` | ${deploymentLink(
+					latestProduction,
+				)} | ${formatRelativeMinutes(latestProduction.createdAt)}`
+			: "- Prod: nenhum deploy recente encontrado.",
+		latestPreview
+			? `- Preview: \`${formatDeployState(latestPreview.state)}\` | ${deploymentLink(
+					latestPreview,
+				)} | ${formatRelativeMinutes(latestPreview.createdAt)}`
+			: "- Preview: nenhum deploy recente encontrado.",
+	];
+
+	const deployLines =
+		deployments.length > 0
+			? deployments.map((deployment) => {
+					const actor =
+						deployment.creator?.username ||
+						deployment.creator?.email ||
+						"unknown";
+					const gitRef = deployment.meta?.githubCommitRef || "sem-branch";
+					const gitSha = deployment.meta?.githubCommitSha
+						? deployment.meta.githubCommitSha.slice(0, 7)
+						: "sem-sha";
+					return `- \`${formatDeployState(deployment.state)}\` | ${deployment.target || "preview"} | ${gitRef} (${gitSha}) | by ${actor} | ${formatRelativeMinutes(
+						deployment.createdAt,
+					)} | ${deploymentLink(deployment)}`;
+				})
+			: ["- Nenhum deploy encontrado para o projeto informado."];
+
+	return {
+		snapshot: {
+			snapshotKey: "deploy_status",
+			channelTarget: sanitizeDeployChannelTarget(channelTarget),
+			title: "Vercel Deploy - Snapshot Operacional",
+			statusLine: `*Projeto:* ${projectId}\n*Deploys monitorados:* ${deployments.length}\n*Estados:* ${
+				stateSummary || "sem dados"
+			}`,
+			trelloLines: [],
+			highlightLines,
+			pendingCardGroups: {
+				inProgressLines: [],
+				withOwnerLines: [],
+				withoutOwnerLines: [],
+			},
+			prLines: deployLines,
+			docLines: [
+				"- Dashboard Vercel: https://vercel.com/dashboard",
+				"- Deployments API: https://vercel.com/docs/rest-api/reference/endpoints/deployments/list-deployments",
+			],
+			operationalLines: [
+				"- Snapshot automático de deploy na Vercel disparado pelo cron externo.",
+				"- Use este estado junto com os snapshots de backlog/PR para decidir priorização de incidentes.",
+			],
+			generatedAt: new Date().toLocaleString("pt-BR", {
+				timeZone: "America/Sao_Paulo",
+			}),
+		},
+	};
+}
+
 async function buildBacklogSnapshot(config) {
 	const trelloCreds = {
 		key: config.trelloKey,
@@ -422,4 +573,34 @@ async function buildPrQueueSnapshot(config) {
 	});
 }
 
-export { buildBacklogSnapshot, buildPrQueueSnapshot };
+async function buildDeployStatusSnapshot(config) {
+	if (!config.vercelApiToken) {
+		throw new Error(
+			"Missing VERCEL_API_TOKEN for deploy cron sync.",
+		);
+	}
+	if (!config.vercelProjectId) {
+		throw new Error(
+			"Missing VERCEL_PROJECT_ID for deploy cron sync.",
+		);
+	}
+
+	const result = await vercelGetJson(
+		`/v6/deployments?projectId=${encodeURIComponent(
+			config.vercelProjectId,
+		)}&limit=${config.vercelDeployListLimit}`,
+		{
+			token: config.vercelApiToken,
+			teamId: config.vercelTeamId,
+		},
+	);
+	const deployments = asArray(result.deployments);
+
+	return buildDeployStatusSnapshotPayload({
+		projectId: config.vercelProjectId,
+		deployments,
+		channelTarget: config.deploySnapshotChannelTarget,
+	});
+}
+
+export { buildBacklogSnapshot, buildPrQueueSnapshot, buildDeployStatusSnapshot };

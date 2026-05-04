@@ -12,7 +12,7 @@
 		"dev": "node --watch src/server.mjs",
 		"start": "node src/server.mjs",
 		"test": "node --test",
-		"check": "node --check src/server.mjs && node --check src/app.mjs && node --check src/config.mjs && node --check src/cron-sync.mjs && node --check src/github-review-notification.mjs && node --check src/handle-cron-sync.mjs && node --check src/handle-github-pr-review-notify.mjs && node --check src/handle-slack-sync-snapshot.mjs && node --check src/slack-client.mjs && node --check api/health.mjs && node --check api/github/pr-review-notify.mjs && node --check api/slack/sync-snapshot.mjs && node --check api/cron/backlog-sync.mjs && node --check api/cron/pr-queue-sync.mjs"
+		"check": "node --check src/server.mjs && node --check src/app.mjs && node --check src/config.mjs && node --check src/cron-sync.mjs && node --check src/github-review-notification.mjs && node --check src/handle-cron-sync.mjs && node --check src/handle-github-pr-review-notify.mjs && node --check src/handle-slack-sync-snapshot.mjs && node --check src/slack-client.mjs && node --check api/health.mjs && node --check api/github/pr-review-notify.mjs && node --check api/slack/sync-snapshot.mjs && node --check api/cron/backlog-sync.mjs && node --check api/cron/pr-queue-sync.mjs && node --check api/cron/deploy-status-sync.mjs"
 	},
 	"dependencies": {
 		"express": "^5.1.0"
